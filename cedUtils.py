@@ -2,9 +2,6 @@ import maya.cmds as cmds
 import maya.mel as mel
 import math as math
 
-def Print_Text():
-    print('Yup, thats cedUtils for ya')
-
 def create_centered_loc():
     sel = cmds.ls(selection=True)
     # check if the selection has components
@@ -106,3 +103,49 @@ def joint_on_curve(sel=None, front_axis='X', up_axis='Z', name=None):
     print(u_value)
 
     # Orient the joints
+
+def add_ctrl(base_name=None, shape='Square', ctrl_size=1, offset_node=False, forward_axis='X'):
+    
+    if not base_name and cmds.ls(selection=True):
+        base_name = cmds.ls(selection=True)[0]
+        ctrl_name = change_base_name(base_name, 'CTRL', replace=True)
+    elif base_name:
+        ctrl_name = change_base_name(base_name, 'CTRL', replace=True) 
+    else:
+        ctrl_name = shape + '_CTRL'
+
+    for_axis = limb.define_axis(forward_axis) # Returns a Vector3
+
+    if shape == 'Cube':
+        ctrl = cmds.curve(n=ctrl_name, d=1, p=[(0.5,0.5,0.5),(0.5,0.5,-0.5),(-0.5,0.5,-0.5),(-0.5,0.5,0.5),(0.5,0.5,0.5),
+                                    (0.5,-0.5,0.5),(-0.5,-0.5,0.5),(-0.5,0.5,0.5),(-0.5,-0.5,0.5),(-0.5,-0.5,-0.5),
+                                    (-0.5,0.5,-0.5),(-0.5,-0.5,-0.5),(0.5,-0.5,-0.5),(0.5,0.5,-0.5),(0.5,-0.5,-0.5),
+                                    (0.5,-0.5,0.5)])
+    elif shape == 'Sphere':
+        ctrl = cmds.curve(n=ctrl_name, d=1, p=[(1,0,0), (1,0,0)])
+    elif shape == 'Circle':
+        ctrl = cmds.circle(name = ctrl_name, normal = for_axis)[0]
+
+    elif shape == 'Square':
+        ctrl = cmds.circle(n=ctrl_name, d=1, sections=4, normal = for_axis)[0]
+        if forward_axis == 'X':
+            cmds.xform(ctrl, rotation = (45,0,0))
+        if forward_axis == 'Y':
+            cmds.xform(ctrl, rotation = (0,45,0))
+        if forward_axis == 'Z':
+            cmds.xform(ctrl, rotation = (0,0,45))
+        cmds.manipPivot(o=(0,0,0))
+    
+    elif shape == 'Star':
+        ctrl = cmds.curve(n=ctrl_name, d=1, p=[(1,0,0),(-1,0,0),(0,0,0),(0,0,1),(0,0,-1),(0,0,0),(0,1,0),(0,-1,0)])
+    else:
+        cmds.error('No shape has been defined.')
+    
+    cmds.setAttr(ctrl + '.scale', ctrl_size, ctrl_size, ctrl_size)
+    cmds.makeIdentity(apply=True)
+    cmds.delete(ch=1)
+
+    grp = cmds.group(ctrl, name=ctrl.replace('CTRL', 'NPO'))
+    if offset_node:
+        cmds.group(ctrl, name = ctrl.replace('CTRL', 'OFF'))
+    return grp
